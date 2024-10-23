@@ -6,6 +6,8 @@ import com.ramzibz.kafka.OrderConfirmation;
 import com.ramzibz.kafka.OrderProducer;
 import com.ramzibz.orderLine.OrderLineRequest;
 import com.ramzibz.orderLine.OrderLineService;
+import com.ramzibz.payment.PaymentClient;
+import com.ramzibz.payment.PaymentRequest;
 import com.ramzibz.product.ProductClient;
 import com.ramzibz.product.PurchaseRequest;
 import jakarta.persistence.EntityNotFoundException;
@@ -24,6 +26,7 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final OrderLineService orderLineService;
     private final OrderProducer orderProducer;
+    private final PaymentClient paymentClient;
 
     public Integer createOrder(OrderRequest orderRequest) {
         var customer = this.customerClient.findCustomerById(orderRequest.customerId())
@@ -42,7 +45,15 @@ public class OrderService {
                     )
             );
         }
-        //TODO: Integrating payment process
+        paymentClient.requestOrderPayment(
+                new PaymentRequest(
+                        orderRequest.amount(),
+                        orderRequest.paymentMethod(),
+                        order.getId(),
+                        order.getReference(),
+                        customer
+                )
+        );
 
         orderProducer.sendOrderConfirmation(
                 new OrderConfirmation(
