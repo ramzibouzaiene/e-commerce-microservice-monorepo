@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK
         uses: actions/setup-java@v2
@@ -27,28 +29,52 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build and Deploy Changed Services
+      - name: Print Event Information
         run: |
-          # Identify changed services
+          echo "Event Name: ${{ github.event_name }}"
+          echo "Changed files:"
+          git diff --name-only HEAD^ HEAD  # This line is for debugging; can be removed later.
+
+      - name: Identify Changed Services
+        id: identify_changed_services
+        run: |
           services=("config-server" "customer" "discovery" "gateway" "notification" "order" "payment" "product")
           changed_services=()
 
+          # Get the list of changed files from the last commit
+          changed_files=$(git diff --name-only HEAD^ HEAD)
+
           for service in "${services[@]}"; do
-              if git diff --name-only HEAD^ HEAD | grep -q "services/$service/"; then
+              if echo "$changed_files" | grep -q "services/$service/"; then
                   changed_services+=("$service")
               fi
           done
 
-          # Build each changed service
-          for service in "${changed_services[@]}"; do
-              echo "Building and deploying service: $service"
-              cd "services/$service" || exit
-              mvn clean install jib:build
-              cd - || exit
-          done
+          # Also check for changes to the pipeline file
+          if echo "$changed_files" | grep -q ".github/workflows/pipeline.yml"; then
+              echo "Pipeline code has changed. Triggering rebuild for all services."
+              changed_services=("${services[@]}")  # Rebuild all services if the pipeline code changes
+          fi
 
+          # Output the changed services
           if [ ${#changed_services[@]} -eq 0 ]; then
               echo "No services changed."
+              echo "::set-output name=changed_services::none"
           else
               echo "Built and deployed the following services: ${changed_services[@]}"
+              echo "::set-output name=changed_services::${changed_services[@]}"
           fi
+
+      - name: Build and Deploy Changed Services
+        run: |
+          changed_services="${{ steps.identify_changed_services.outputs.changed_services }}"
+          IFS=' ' read -r -a services <<< "$changed_services"
+
+          for service in "${services[@]}"; do
+              if [ "$service" != "none" ]; then
+                  echo "Building and deploying service: $service"
+                  cd "services/$service" || exit
+                  mvn clean install jib:build
+                  cd - || exit
+              fi
+          done
