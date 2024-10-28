@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-order
+  labels:
+    app: order-service
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+    spec:
+      containers:
+        - name: order-service
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.service.port }}
+          resources:
+            requests:
+              memory: '250Mi'
+              cpu: '500m'
+            limits:
+              memory: '512Mi'
+              cpu: '500m'
+          env:
+            - name: SPRING_APPLICATION_NAME
+              value: order-service
+            - name: SPRING_CONFIG_IMPORT
+              value: {{ .Values.configServer.url }}

@@ -1,0 +1,186 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-server-configMap
+data:
+  application.yml: |
+    eureka:
+      instance:
+        hostname: localhost
+      client:
+        service-url:
+          defaultZone: 'http://localhost:8761/eureka'
+    spring:
+      cloud:
+        config:
+          override-system-properties: false
+    management:
+      tracing:
+        sampling:
+          probability: 1
+
+  order-service.yml: |
+    spring:
+      datasource:
+        url: jdbc:postgresql://postgres:5432/order
+        username: ramzi
+        password: ramzi
+        driver-class-name: org.postgresql.Driver
+      jpa:
+        hibernate:
+          ddl-auto: create
+        database-platform: org.hibernate.dialect.PostgresSQLDialect
+        database: postgresql
+      kafka:
+        producer:
+          bootstrap-servers: kafka:9092
+          key-serializer: org.apache.kafka.common.serialization.StringSerializer
+          value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+          properties:
+            spring.json.type.mapping: orderConfirmation:com.ramzibz.kafka.OrderConfirmation
+    server:
+      port: 8060
+
+    application:
+      config:
+        customer-url: http://customer-service:8222/api/v1/customers
+        product-url: http://product-service:8222/api/v1/products
+        payment-url: http://payment-service:8222/api/v1/payments
+
+  payment-service.yml: |
+    spring:
+      datasource:
+        url: jdbc:postgresql://postgres:5432/payment
+        username: ramzi
+        password: ramzi
+        driver-class-name: org.postgresql.Driver
+      jpa:
+        hibernate:
+          ddl-auto: validate
+        database-platform: org.hibernate.dialect.PostgresSQLDialect
+        database: postgresql
+      kafka:
+        producer:
+          bootstrap-servers: localhost:9092
+          key-serializer: org.apache.kafka.common.serialization.StringSerializer
+          value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+          properties:
+            spring.json.type.mapping: paymentConfirmation:com.ramzibz.payment.notification.PaymentNotificationRequest
+    server:
+      port: 8089
+
+  customer-service.yml: |
+    spring:
+      data:
+        mongodb:
+          username: ramzi
+          password: ramzi
+          host: localhost
+          port: 27017
+          database: customer
+          authentication-database: admin
+    server:
+      port: 8090
+
+  discovery-service.yml: |
+    eureka:
+      instance:
+        hostname: localhost
+      client:
+        registerWithEureka: false
+        fetchRegistry: false
+        serviceUrl:
+          defaultZone: http://${eureka.instance.hostname}/${server.port}/eureka/
+    server:
+      port: 8761
+
+  gateway-service.yml: |
+    spring:
+      cloud:
+        gateway:
+          discovery:
+            locator:
+              enabled: true
+          routes:
+            - id: customer-service
+              uri: lb:http://CUSTOMER-SERVICE
+              predicates:
+                - Path=/api/v1/customers/**
+            - id: order-service
+              uri: lb:http://ORDER-SERVICE
+              predicates:
+                - Path=/api/v1/orders/**
+            - id: order-lines-service
+              uri: lb:http://ORDER-SERVICE
+              predicates:
+                - Path=/api/v1/order-lines/**
+            - id: product-service
+              uri: lb:http://PRODUCT-SERVICE
+              predicates:
+                - Path=/api/v1/products/**
+            - id: payment-service
+              uri: lb:http://PAYMENT-SERVICE
+              predicates:
+                - Path=/api/v1/payments/**
+    server:
+      port: 8222
+
+  notification-service.yml: |
+    spring:
+      data:
+        mongodb:
+          username: ramzi
+          password: ramzi
+          host: localhost
+          port: 27017
+          database: customer
+          authentication-database: admin
+      kafka:
+        consumer:
+          bootstrap-servers: localhost:9092
+          group-id: paymentGroup,orderGroup
+          auto-offset-reset: earliest
+          key-deserializer: org.apache.kafka.common.serialization.StringSerializer
+          value-deserializer: org.springframework.kafka.support.serializer.JsonSerializer
+          properties:
+            spring.json.trusted.packages: '*'
+            spring.json.type.mapping: orderConfirmation:com.ramzibz.kafka.OrderConfirmation,paymentConfirmation:com.ramzibz.payment.notification.PaymentNotificationRequest
+      mail:
+        host: localhost
+        port: 1025
+        username: ramzi
+        password: ramzi
+        properties:
+          mail:
+            smtp:
+              trust: "*"
+            auth: true
+            starttls:
+              enabled: true
+            connectiontimeout: 5000
+            timeout: 3000
+            writetimeout: 5000
+    server:
+      port: 8040
+
+  product-service.yml: |
+    spring:
+      datasource:
+        url: jdbc:postgresql://postgres:5432/postgres
+        username: ramzi
+        password: ramzi
+        driver-class-name: org.postgresql.Driver
+      jpa:
+        hibernate:
+          ddl-auto: validate
+        database-platform: org.hibernate.dialect.PostgresSQLDialect
+        database: postgresql
+      flyway:
+        baseline-on-migrate: true
+        enabled: true
+        baseline-description: "init"
+        baseline-version: 0
+        user: ${spring.datasource.username}
+        password: ${spring.datasource.password}
+    server:
+      port: 8050

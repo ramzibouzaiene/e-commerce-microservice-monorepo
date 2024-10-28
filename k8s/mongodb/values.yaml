@@ -1,0 +1,24 @@
+replicaCount: 1
+
+image:
+  repository: bitnami/mongodb
+  tag: 5.0.0 # Update to the desired MongoDB version
+  pullPolicy: IfNotPresent
+
+service:
+  enabled: true
+  annotations: {}
+  type: ClusterIP
+  port: 27017
+  name: mongodb
+
+persistence:
+  enabled: true
+  storageClass: "standard" # Update according to your storage class
+  accessMode: ReadWriteOnce
+  size: 8Gi
+
+mongodbRootPassword: "ramzi"
+mongodbUsername: "rami"
+mongodbPassword: "ramzi"
+mongodbDatabase: "test"
