@@ -1,7 +1,5 @@
 package com.ramzibz.payment.payment;
 
-import com.ramzibz.order.PaymentMethod;
-
 import java.math.BigDecimal;
 
 public record PaymentRequest(
