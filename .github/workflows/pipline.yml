@@ -11,6 +11,7 @@ on:
       - 'services/order/**'
       - 'services/payment/**'
       - 'services/product/**'
+      - '.github/workflows/pipeline.yml'
 
 jobs:
   build:
