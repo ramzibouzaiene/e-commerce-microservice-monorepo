@@ -1,4 +1,4 @@
-package com.ramzibz.payment.notification;
+package com.ramzibz.payment.payment;
 
 public enum PaymentMethod {
     PAYPAL,

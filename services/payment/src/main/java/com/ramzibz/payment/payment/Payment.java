@@ -1,6 +1,5 @@
 package com.ramzibz.payment.payment;
 
-import com.ramzibz.order.PaymentMethod;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
