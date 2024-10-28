@@ -1,0 +1,52 @@
+name: Build and Deploy
+
+on:
+  push:
+    paths:
+      - 'services/config-server/**'
+      - 'services/customer/**'
+      - 'services/discovery/**'
+      - 'services/gateway/**'
+      - 'services/notification/**'
+      - 'services/order/**'
+      - 'services/payment/**'
+      - 'services/product/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11' # Set your desired Java version
+
+      - name: Build and Deploy Changed Services
+        run: |
+          # Identify changed services
+          services=("customer" "payment" "order")
+          changed_services=()
+
+          for service in "${services[@]}"; do
+              if git diff --name-only HEAD^ HEAD | grep -q "services/$service/"; then
+                  changed_services+=("$service")
+              fi
+          done
+
+          # Build each changed service
+          for service in "${changed_services[@]}"; do
+              echo "Building and deploying service: $service"
+              cd "services/$service" || exit
+              mvn clean install jib:build
+              cd - || exit
+          done
+
+          if [ ${#changed_services[@]} -eq 0 ]; then
+              echo "No services changed."
+          else
+              echo "Built and deployed the following services: ${changed_services[@]}"
+          fi
