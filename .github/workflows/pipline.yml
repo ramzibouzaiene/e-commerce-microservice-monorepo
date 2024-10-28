@@ -23,7 +23,8 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v2
         with:
-          java-version: '11' # Set your desired Java version
+          java-version: '17'
+          distribution: 'temurin'
 
       - name: Build and Deploy Changed Services
         run: |
