@@ -41,3 +41,8 @@ The application is structured as a monorepo containing several microservices, ea
 - **RestTemplate**: For synchronous RESTful communication
 - **Kubernetes**: For container orchestration and deployment
 - **Jib**: For building Docker images directly from Maven
+- **Helm**: For managing Kubernetes applications
+
+## Helm Chart
+
+A Helm chart is included in this project to facilitate the deployment of the microservices to a Kubernetes cluster. The chart can be found in the `k8s/` directory. 
